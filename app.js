@@ -59,8 +59,8 @@ function createTaskStore () {
 class Task extends Component {
   static template = xml /* xml */`
               <div class="task" t-att-class="props.task.isCompleted?'done':''">
-                <input type="checkbox" t-att-checked="props.task.isCompleted" t-on-click="() => store.toggleTask(props.task)" />
-                <span><t t-esc="props.task.text"/></span>
+                <input type="checkbox" t-att-checked="props.task.isCompleted" t-on-click="() => store.toggleTask(props.task)" t-att-id="props.task.id" />
+                <label t-att-for="props.task.id"><t t-esc="props.task.text"/></label>
                 <span class="delete" t-on-click="() => store.deleteTask(props.task)">🗑</span>
             </div>
   `;

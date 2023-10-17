@@ -29,6 +29,10 @@
   opacity: 0.7;
 }
 
+.task.done label {
+  text-decoration: line-through;
+}
+
 .task > input {
   margin: auto;
 }
@@ -61,4 +65,8 @@
 
 .task-panel span.active {
   font-weight: bold;
+}
+
+.task:hover {
+  background-color: #def0ff;
 }

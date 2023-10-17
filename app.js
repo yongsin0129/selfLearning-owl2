@@ -1,79 +1,34 @@
-const { Component, mount, xml, useRef, onMounted, useState } = owl
+const { Component, mount, xml, useRef, onMounted, useState, reactive, useEnv } = owl
 // import { Component, mount, xml, useRef, onMounted } from "./owl.js"
 
-// -----------------------------------------------------------------
-// Task Component
-// -----------------------------------------------------------------
-class Task extends Component {
-  static template = xml/* xml */`
-		<div class="task" t-att-class="props.task.isCompleted ? 'done':''" t-on-click="toggleTask">
-			<input type="checkbox" t-att-checked="props.task.isCompleted" />
-			<span><t t-esc="props.task.text" /></span>
-      <span class="delete" t-on-click="deleteTask">🗑</span>
-		</div>
-	`;
-
-  static props = ['task', "onDelete"]
-
-  toggleTask () {
-    this.props.task.isCompleted = !this.props.task.isCompleted
-  }
-
-  deleteTask () {
-    this.props.onDelete(this.props.task)
-  }
-
+// --------------------------------------------------------
+// Store
+// --------------------------------------------------------
+function useStore () {
+  const env = useEnv()
+  return useState(env.store)
 }
 
+// --------------------------------------------------------
+// tasklist
+// --------------------------------------------------------
+class TaskList {
+  nextId = 1;
+  tasks = [];
 
-// -----------------------------------------------------------------
-// Root Component
-// -----------------------------------------------------------------
-class Root extends Component {
-  static template = xml /* xml */`
-    <div class="todo-app">
-        <input placeholder="Enter a new task" t-on-keyup="addTask" t-ref="add-input"/>
-        <div class="task-list">
-            <t t-foreach="tasks" t-as="task" t-key="task.id">
-                <Task task="task" onDelete.bind="deleteTask"/>
-                <!-- 注意: onDelete 属性的定义有一个后缀.bind, 这是一个特殊的后缀用来确保回调函数跟组件做了绑定. -->
-            </t>
-        </div>
-    </div>
-  `;
-  static components = { Task };
-
-  nextId = 3
-  tasks = useState([{
-    id: 1,
-    text: "buy milk",
-    isCompleted: true,
-  }, {
-    id: 2,
-    text: "clean house",
-    isCompleted: false,
-  }]);
-
-
-  setup () {
-    const inputRef = useRef("add-input")
-    onMounted(() => inputRef.el.focus())
+  addTask (text) {
+    if (text) {
+      const task = {
+        id: this.nextId++,
+        text: text,
+        isCompleted: false
+      }
+      this.tasks.push(task)
+    }
   }
 
-  addTask (ev) {
-    // 13 is keycode for ENTER
-    if (ev.keyCode === 13) {
-      const text = ev.target.value.trim()
-      ev.target.value = ""
-      if (text) {
-        const newTask = {
-          id: this.nextId++,
-          text: text,
-          isCompleted: false,
-        }
-        this.tasks.push(newTask)
-      }
-    }
+  toggleTask (task) {
+    task.isCompleted = !task.isCompleted
   }
 
   deleteTask (task) {
@@ -81,7 +36,72 @@ class Root extends Component {
     this.tasks.splice(index, 1)
   }
 }
-// -----------------------------------------------------------------
+
+function createTaskStore () {
+  return reactive(new TaskList())
+}
+
+// --------------------------------------------------------
+// Task Components
+// --------------------------------------------------------
+
+class Task extends Component {
+  static template = xml /* xml */`
+              <div class="task" t-att-class="props.task.isCompleted?'done':''">
+                <input type="checkbox" t-att-checked="props.task.isCompleted" t-on-click="() => store.toggleTask(props.task)" />
+                <span><t t-esc="props.task.text"/></span>
+                <span class="delete" t-on-click="() => store.deleteTask(props.task)">🗑</span>
+            </div>
+  `;
+
+  setup () {
+    this.store = useStore() // return useState(useEnv().store)
+  }
+
+  static props = ["task"];
+}
+
+
+// --------------------------------------------------------
+// Root Components
+// --------------------------------------------------------
+
+class Root extends Component {
+  static template = xml/* xml */ `
+      <div class="todo-app">
+        <input placeholder="Enter a new task" t-on-keyup="addTask" t-ref="add-todo" type="text" />
+        <div class="task-list">
+          <t t-foreach="store.tasks" t-as="task" t-key="task.id">
+            <Task task="task" /> 
+          </t>
+        </div>
+    </div>
+`;
+
+
+  static components = { Task };
+
+  setup () {
+    const useref = useRef("add-todo")
+    onMounted(() => useref.el.focus())
+    this.store = useStore() // return useState(useEnv().store)
+  }
+
+  addTask (ev) {
+    if (ev.keyCode == 13) {
+      this.store.addTask(ev.target.value)
+      ev.target.value = ""
+    }
+  }
+
+
+}
+
+// --------------------------------------------------------
 // Setup
-// -----------------------------------------------------------------
-mount(Root, document.body, { dev: true })
+// --------------------------------------------------------
+
+const env = {
+  store: createTaskStore(),
+}
+mount(Root, document.body, { dev: true, env })

@@ -42,3 +42,23 @@
 .task:hover .delete {
   opacity: 1;
 }
+
+.task-panel {
+  color: #0088ff;
+  margin-top: 8px;
+  font-size: 14px;
+  display: flex;
+}
+
+.task-panel .task-counter {
+  flex-grow: 1;
+}
+
+.task-panel span {
+  padding: 5px;
+  cursor: pointer;
+}
+
+.task-panel span.active {
+  font-weight: bold;
+}

@@ -13,8 +13,12 @@ function useStore () {
 // tasklist
 // --------------------------------------------------------
 class TaskList {
-  nextId = 1;
-  tasks = [];
+
+  constructor (tasks) {
+    this.tasks = tasks || []
+    const taskIds = this.tasks.map((t) => t.id)
+    this.nextId = taskIds.length ? Math.max(...taskIds) + 1 : 1
+  }
 
   addTask (text) {
     if (text) {
@@ -38,7 +42,14 @@ class TaskList {
 }
 
 function createTaskStore () {
-  return reactive(new TaskList())
+  const saveTasks = () => localStorage.setItem("todoapp", JSON.stringify(taskStore.tasks))
+  const initialTasks = JSON.parse(localStorage.getItem("todoapp") || "[]")
+  const taskStore = reactive(new TaskList(initialTasks), saveTasks)
+  saveTasks()
+  return taskStore
+
+  // 注意: 我们需要调用saveTasks方法来初始化确保我们能观测到现在所有的值.
+  // 只要 TaskList 發生變化，都會 call saveTasks() , 做 localStorage.setItem
 }
 
 // --------------------------------------------------------
